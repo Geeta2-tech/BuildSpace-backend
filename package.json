@@ -4,15 +4,21 @@
   "description": "",
   "license": "ISC",
   "author": "",
-  "type": "module",
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "prepare": "husky",
-    "dev": "nodemon -r dotenv/config server.js dotenv_config_path=env/.env.staging",
+    "dev": "nodemon -r dotenv/config server.js dotenv_config_path=env/.env.dev",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
-    "format": "prettier --write ."
+    "format": "prettier --write .",
+    "docker:network": "docker network create buildspace_network",
+    "docker:db": "docker network connect buildspace_network my-mysql",
+    "docker:build": "docker build -t buildspace_backend .",
+    "docker:run": "docker run -d --name buildspace_backend --network buildspace_network -p 3000:3000 buildspace_backend",
+    "docker:rm": "docker rm buildspace_backend",
+    "docker:start": "docker start buildspace_backend",
+    "docker:stop": "docker stop buildspace_backend"
   },
   "dependencies": {
     "cors": "^2.8.5",
