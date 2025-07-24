@@ -22,7 +22,7 @@ To set up the environment for the BuildSpace backend application, you will need 
 - `ENVIRONMENT` : The environment to use for the application (e.g. `development`, `production`).
 - `SECRET_KEY` : A secret key to use for encryption and other security purposes.
 
-# **Setting up Backend using Backend**
+# **Setting up Backend using Docker**
 
 To set up Docker for this project, follow these steps:
 
@@ -81,3 +81,26 @@ npm run docker:rm
 > **Note**: Make sure to stop the container before removing it.
 
 That's it! You should now have a running Docker container with the BuildSpace backend application.
+
+
+**APIs**
+=============
+
+**Auth API Endpoints**
+
+The following endpoints are available for the AUTH APIs:
+
+* `POST /auth/register`: Register a new user
+* `POST /auth/login`: Login an existing user
+* `POST /auth/logout`: Logout a user
+* `POST /auth/forgot-password`: Send a password reset email to a user
+* `POST /auth/reset-password`: Reset a user's password
+* `POST /auth/send-verification`: Send an email verification link to a user
+* `GET /auth/verify-email`: Verify a user's email address
+
+**Using Swagger**
+=================
+
+The BuildSpace backend application uses Swagger to provide API documentation. To access the Swagger UI, navigate to `http://localhost:3333/api-docs` in your web browser.
+
+> **Note:** Make sure to replace `http://localhost:3333` with the actual URL of your application.
