@@ -27,8 +27,8 @@ const format = winston.format.combine(
   winston.format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss:ms' }),
   winston.format.colorize({ all: true }),
   winston.format.printf(
-    (info) => `${info.timestamp} ${info.level}: ${info.message}`,
-  ),
+    (info) => `${info.timestamp} ${info.level}: ${info.message}`
+  )
 );
 
 // Define transports
@@ -38,9 +38,9 @@ const transports = [
     format: winston.format.combine(
       winston.format.colorize(),
       winston.format.simple()
-    )
+    ),
   }),
-  
+
   // Error log file
   new winston.transports.File({
     filename: path.join('logs', 'error.log'),
@@ -48,16 +48,16 @@ const transports = [
     format: winston.format.combine(
       winston.format.timestamp(),
       winston.format.json()
-    )
+    ),
   }),
-  
+
   // Combined log file
   new winston.transports.File({
     filename: path.join('logs', 'combined.log'),
     format: winston.format.combine(
       winston.format.timestamp(),
       winston.format.json()
-    )
+    ),
   }),
 ];
 
@@ -73,18 +73,18 @@ const logger = winston.createLogger({
 // Add request logging middleware function
 logger.httpLogger = (req, res, next) => {
   const start = Date.now();
-  
+
   res.on('finish', () => {
     const duration = Date.now() - start;
     const message = `${req.method} ${req.originalUrl} ${res.statusCode} - ${duration}ms`;
-    
+
     if (res.statusCode >= 400) {
       logger.warn(message);
     } else {
       logger.http(message);
     }
   });
-  
+
   next();
 };
 

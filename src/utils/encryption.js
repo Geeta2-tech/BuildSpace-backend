@@ -14,7 +14,8 @@ const config = {
   saltRounds: 12,
   jwtSecret: process.env.JWT_SECRET || 'your-secret-key',
   jwtRefreshSecret: process.env.JWT_REFRESH_SECRET || 'your-refresh-secret-key',
-  encryptionKey: process.env.ENCRYPTION_KEY || crypto.randomBytes(32).toString('hex')
+  encryptionKey:
+    process.env.ENCRYPTION_KEY || crypto.randomBytes(32).toString('hex'),
 };
 
 /**
@@ -48,29 +49,33 @@ const passwordUtils = {
    * Generate a secure random password
    */
   generate: (length = 12) => {
-    const charset = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*';
+    const charset =
+      'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*';
     let password = '';
-    
+
     // Ensure at least one character from each category
     const categories = [
       'ABCDEFGHIJKLMNOPQRSTUVWXYZ',
       'abcdefghijklmnopqrstuvwxyz',
       '0123456789',
-      '!@#$%^&*'
+      '!@#$%^&*',
     ];
-    
-    categories.forEach(category => {
+
+    categories.forEach((category) => {
       password += category.charAt(crypto.randomInt(0, category.length));
     });
-    
+
     // Fill remaining length
     for (let i = password.length; i < length; i++) {
       password += charset.charAt(crypto.randomInt(0, charset.length));
     }
-    
+
     // Shuffle the password
-    return password.split('').sort(() => Math.random() - 0.5).join('');
-  }
+    return password
+      .split('')
+      .sort(() => Math.random() - 0.5)
+      .join('');
+  },
 };
 
 /**
@@ -86,16 +91,16 @@ const dataEncryption = {
       const iv = crypto.randomBytes(config.ivLength);
       const cipher = crypto.createCipher(config.algorithm, key);
       cipher.setAAD(Buffer.from('additional-data'));
-      
+
       let encrypted = cipher.update(text, 'utf8', 'hex');
       encrypted += cipher.final('hex');
-      
+
       const tag = cipher.getAuthTag();
-      
+
       return {
         encrypted,
         iv: iv.toString('hex'),
-        tag: tag.toString('hex')
+        tag: tag.toString('hex'),
       };
     } catch (error) {
       throw new Error('Encryption failed');
@@ -110,14 +115,14 @@ const dataEncryption = {
       const key = Buffer.from(config.encryptionKey, 'hex');
       const iv = Buffer.from(encryptedData.iv, 'hex');
       const tag = Buffer.from(encryptedData.tag, 'hex');
-      
+
       const decipher = crypto.createDecipher(config.algorithm, key);
       decipher.setAAD(Buffer.from('additional-data'));
       decipher.setAuthTag(tag);
-      
+
       let decrypted = decipher.update(encryptedData.encrypted, 'hex', 'utf8');
       decrypted += decipher.final('utf8');
-      
+
       return decrypted;
     } catch (error) {
       throw new Error('Decryption failed');
@@ -131,10 +136,10 @@ const dataEncryption = {
     const key = crypto.scryptSync(config.encryptionKey, 'salt', 32);
     const iv = crypto.randomBytes(16);
     const cipher = crypto.createCipher('aes-256-cbc', key);
-    
+
     let encrypted = cipher.update(text, 'utf8', 'hex');
     encrypted += cipher.final('hex');
-    
+
     return iv.toString('hex') + ':' + encrypted;
   },
 
@@ -146,12 +151,12 @@ const dataEncryption = {
     const key = crypto.scryptSync(config.encryptionKey, 'salt', 32);
     const iv = Buffer.from(ivHex, 'hex');
     const decipher = crypto.createDecipher('aes-256-cbc', key);
-    
+
     let decrypted = decipher.update(encrypted, 'hex', 'utf8');
     decrypted += decipher.final('utf8');
-    
+
     return decrypted;
-  }
+  },
 };
 
 /**
@@ -163,10 +168,10 @@ const tokenUtils = {
    */
   generateAccessToken: (payload, expiresIn = '15m') => {
     try {
-      return jwt.sign(payload, config.jwtSecret, { 
+      return jwt.sign(payload, config.jwtSecret, {
         expiresIn,
         issuer: 'your-app-name',
-        audience: 'your-app-users'
+        audience: 'your-app-users',
       });
     } catch (error) {
       throw new Error('Access token generation failed');
@@ -178,10 +183,10 @@ const tokenUtils = {
    */
   generateRefreshToken: (payload, expiresIn = '7d') => {
     try {
-      return jwt.sign(payload, config.jwtRefreshSecret, { 
+      return jwt.sign(payload, config.jwtRefreshSecret, {
         expiresIn,
         issuer: 'your-app-name',
-        audience: 'your-app-users'
+        audience: 'your-app-users',
       });
     } catch (error) {
       throw new Error('Refresh token generation failed');
@@ -195,7 +200,7 @@ const tokenUtils = {
     try {
       return jwt.verify(token, config.jwtSecret, {
         issuer: 'your-app-name',
-        audience: 'your-app-users'
+        audience: 'your-app-users',
       });
     } catch (error) {
       if (error.name === 'TokenExpiredError') {
@@ -215,7 +220,7 @@ const tokenUtils = {
     try {
       return jwt.verify(token, config.jwtRefreshSecret, {
         issuer: 'your-app-name',
-        audience: 'your-app-users'
+        audience: 'your-app-users',
       });
     } catch (error) {
       if (error.name === 'TokenExpiredError') {
@@ -233,11 +238,11 @@ const tokenUtils = {
    */
   generateTokenPair: (payload) => {
     const accessToken = tokenUtils.generateAccessToken(payload);
-    const refreshToken = tokenUtils.generateRefreshToken({ 
+    const refreshToken = tokenUtils.generateRefreshToken({
       userId: payload.userId,
-      tokenVersion: payload.tokenVersion || 0
+      tokenVersion: payload.tokenVersion || 0,
     });
-    
+
     return { accessToken, refreshToken };
   },
 
@@ -246,7 +251,7 @@ const tokenUtils = {
    */
   decodeToken: (token) => {
     return jwt.decode(token, { complete: true });
-  }
+  },
 };
 
 /**
@@ -293,7 +298,7 @@ const randomUtils = {
       otp += digits[crypto.randomInt(0, digits.length)];
     }
     return otp;
-  }
+  },
 };
 
 /**
@@ -337,7 +342,7 @@ const hashUtils = {
    */
   fileHash: (buffer) => {
     return crypto.createHash('sha256').update(buffer).digest('hex');
-  }
+  },
 };
 
 /**
@@ -370,7 +375,7 @@ const sessionUtils = {
     } catch (error) {
       return false;
     }
-  }
+  },
 };
 
 /**
@@ -384,7 +389,7 @@ const emailUtils = {
     const payload = {
       email: email.toLowerCase(),
       timestamp: Date.now(),
-      random: crypto.randomBytes(16).toString('hex')
+      random: crypto.randomBytes(16).toString('hex'),
     };
     return jwt.sign(payload, config.jwtSecret, { expiresIn: '24h' });
   },
@@ -398,12 +403,12 @@ const emailUtils = {
       return {
         valid: true,
         email: payload.email,
-        timestamp: payload.timestamp
+        timestamp: payload.timestamp,
       };
     } catch (error) {
       return {
         valid: false,
-        error: error.message
+        error: error.message,
       };
     }
   },
@@ -416,10 +421,10 @@ const emailUtils = {
       userId,
       email: email.toLowerCase(),
       purpose: 'password_reset',
-      timestamp: Date.now()
+      timestamp: Date.now(),
     };
     return jwt.sign(payload, config.jwtSecret, { expiresIn: '2h' });
-  }
+  },
 };
 
 module.exports = {
@@ -430,5 +435,5 @@ module.exports = {
   hashUtils,
   sessionUtils,
   emailUtils,
-  config
+  config,
 };
