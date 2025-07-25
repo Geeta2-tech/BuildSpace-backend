@@ -1,6 +1,7 @@
 const User = require('./user.model');
 const Workspace = require('./workspace.model');
 const WorkspaceMember = require('./workspacemember.model');
+const Page = require('./page.model');
 
 // ========== ASSOCIATIONS ========== //
 
@@ -40,14 +41,49 @@ WorkspaceMember.belongsTo(User, {
   foreignKey: 'userId',
 });
 
-// // A Workspace can have many Pages (if page model exists)
-// Workspace.hasMany(Page, {
-//   foreignKey: 'workspaceId',
-//   as: 'pages',
-// });
+// A Workspace can have many Pages (if page model exists)
+Workspace.hasMany(Page, {
+  foreignKey: 'workspaceId',
+  as: 'pages',
+});
+
+// Page belongs to a Workspace
+Page.belongsTo(Workspace, {
+  foreignKey: 'workspaceId',
+  as: 'workspace',
+  onDelete: 'CASCADE',
+});
+
+// User can have many Pages
+User.hasMany(Page, {
+  foreignKey: 'createdBy',
+  as: 'createdPages',
+});
+
+// Page belongs to a User (creator)
+Page.belongsTo(User, {
+  foreignKey: 'createdBy',
+  as: 'creator',
+  onDelete: 'SET NULL',
+});
+
+// A Page can have many child pages (self-referencing)
+Page.hasMany(Page, {
+  foreignKey: 'parentPageId',
+  as: 'children',
+  onDelete: 'CASCADE',
+});
+
+// A Page can belong to a parent page
+Page.belongsTo(Page, {
+  foreignKey: 'parentPageId',
+  as: 'parent',
+  onDelete: 'CASCADE',
+});
 
 module.exports = {
   User,
   Workspace,
   WorkspaceMember,
+  Page,
 };
