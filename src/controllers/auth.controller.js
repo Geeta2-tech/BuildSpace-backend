@@ -1,4 +1,4 @@
-const authService = require('../services/auth.services');
+const authService = require('../services/auth.service');
 
 // ----------------------- REGISTER -----------------------
 const register = async (req, res) => {
@@ -27,7 +27,6 @@ const register = async (req, res) => {
         },
       });
   } catch (err) {
-    console.error('Register Error:', err.message);
     res.status(400).json({ message: err.message });
   }
 };
@@ -59,7 +58,6 @@ const login = async (req, res) => {
         },
       });
   } catch (err) {
-    console.error('Login Error:', err.message);
     res.status(400).json({ message: err.message });
   }
 };
@@ -92,8 +90,10 @@ const refreshToken = async (req, res) => {
       .status(200)
       .json({ message: 'Access token refreshed' });
   } catch (err) {
-    console.error('Refresh Error:', err.message);
-    res.status(401).json({ message: 'Invalid or expired refresh token' });
+    res.status(401).json({
+      message: 'Invalid or expired refresh token',
+      details: err.message,
+    });
   }
 };
 

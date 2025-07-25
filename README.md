@@ -217,6 +217,39 @@ The following endpoints are available for the AUTH APIs:
 * `POST /auth/send-verification`: Send an email verification link to a user
 * `GET /auth/verify-email`: Verify a user's email address
 
+**User Profile APIs**
+
+The following endpoints are available for the USER PROFILE APIs:
+
+* `GET /profile/get-user-profile`: Retrieve a user's profile information
+* `PUT /profile/update-username`: Update a user's username
+* `POST /profile/upload-avatar`: Upload a new avatar for a user
+* `PUT /profile/update-email`: Update a user's email address
+* `PUT /profile/update-password`: Update a user's password
+* `GET /profile/get-user-activity`: Retrieve a user's activity history
+
+**Workspace API Endpoints**
+
+The following endpoints are available for the WORKSPACE APIs:
+
+* `POST /workspace/create`: Create a new workspace
+* `GET /workspace/all`: Retrieve a list of all workspaces
+* `PATCH /workspace/rename`: Rename an existing workspace
+* `DELETE /workspace/delete`: Delete an existing workspace
+* `POST /workspace/add-member`: Add a new member to a workspace
+* `DELETE /workspace/remove-member`: Remove a member from a workspace
+* `GET /workspace/members`: Retrieve a list of members in a workspace
+
+**Pages API Endpoints**
+
+The following endpoints are available for the PAGES APIs:
+
+* `POST /api/pages/create`: Create a new page
+* `GET /api/pages/get-all`: Retrieve a list of all pages in a workspace
+* `GET /api/pages/get-by-id`: Retrieve a page by its ID
+* `PUT /api/pages/update`: Update a page title
+* `DELETE /api/pages/delete`: Delete a page
+
 **Using Swagger**
 =================
 
