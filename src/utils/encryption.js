@@ -30,7 +30,7 @@ const passwordUtils = {
       const salt = await bcrypt.genSalt(config.saltRounds);
       return await bcrypt.hash(password, salt);
     } catch (error) {
-      throw new Error('Password hashing failed');
+      throw new Error(`Password hashing failed. Error: ${error.message}`);
     }
   },
 
@@ -41,7 +41,7 @@ const passwordUtils = {
     try {
       return await bcrypt.compare(password, hash);
     } catch (error) {
-      throw new Error('Password verification failed');
+      throw new Error(`Password verification failed. Error: ${error.message}`);
     }
   },
 
@@ -103,7 +103,7 @@ const dataEncryption = {
         tag: tag.toString('hex'),
       };
     } catch (error) {
-      throw new Error('Encryption failed');
+      throw new Error(`Encryption failed. Error: ${error.message}`);
     }
   },
 
@@ -113,7 +113,7 @@ const dataEncryption = {
   decrypt: (encryptedData) => {
     try {
       const key = Buffer.from(config.encryptionKey, 'hex');
-      const iv = Buffer.from(encryptedData.iv, 'hex');
+      // const iv = Buffer.from(encryptedData.iv, 'hex');
       const tag = Buffer.from(encryptedData.tag, 'hex');
 
       const decipher = crypto.createDecipher(config.algorithm, key);
@@ -125,7 +125,7 @@ const dataEncryption = {
 
       return decrypted;
     } catch (error) {
-      throw new Error('Decryption failed');
+      throw new Error(`Decryption failed. Error: ${error.message}`);
     }
   },
 
@@ -149,7 +149,7 @@ const dataEncryption = {
   simpleDecrypt: (encryptedText) => {
     const [ivHex, encrypted] = encryptedText.split(':');
     const key = crypto.scryptSync(config.encryptionKey, 'salt', 32);
-    const iv = Buffer.from(ivHex, 'hex');
+    // const iv = Buffer.from(ivHex, 'hex');
     const decipher = crypto.createDecipher('aes-256-cbc', key);
 
     let decrypted = decipher.update(encrypted, 'hex', 'utf8');
@@ -174,7 +174,9 @@ const tokenUtils = {
         audience: 'your-app-users',
       });
     } catch (error) {
-      throw new Error('Access token generation failed');
+      throw new Error(
+        `Access token generation failed. Error: ${error.message}`
+      );
     }
   },
 
@@ -189,7 +191,9 @@ const tokenUtils = {
         audience: 'your-app-users',
       });
     } catch (error) {
-      throw new Error('Refresh token generation failed');
+      throw new Error(
+        `Refresh token generation failed. Error: ${error.message}`
+      );
     }
   },
 
