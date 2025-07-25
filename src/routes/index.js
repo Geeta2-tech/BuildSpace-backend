@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const authRoutes = require('./auth.routes');
 const profileRouter = require('./profile.route');
+const workspaceRoutes = require('./workspace.routes');
 
 // Health check route
 router.get('/health', (req, res) => {
@@ -10,5 +11,6 @@ router.get('/health', (req, res) => {
 
 router.use('/auth', authRoutes);
 router.use('/profile', profileRouter);
+router.use('/workspace', workspaceRoutes);
 
 module.exports = router;
