@@ -1,4 +1,4 @@
-const workspaceService = require('../services/workspace.services');
+const workspaceService = require('../services/workspace.service');
 
 // ----------------------- CREATE WORKSPACE -----------------------
 const createWorkspace = async (req, res) => {
