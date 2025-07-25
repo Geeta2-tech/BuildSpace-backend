@@ -240,6 +240,16 @@ The following endpoints are available for the WORKSPACE APIs:
 * `DELETE /workspace/remove-member`: Remove a member from a workspace
 * `GET /workspace/members`: Retrieve a list of members in a workspace
 
+**Pages API Endpoints**
+
+The following endpoints are available for the PAGES APIs:
+
+* `POST /api/pages/create`: Create a new page
+* `GET /api/pages/get-all`: Retrieve a list of all pages in a workspace
+* `GET /api/pages/get-by-id`: Retrieve a page by its ID
+* `PUT /api/pages/update`: Update a page title
+* `DELETE /api/pages/delete`: Delete a page
+
 **Using Swagger**
 =================
 
