@@ -150,6 +150,92 @@ const verifyEmail = async (token) => {
   return true;
 };
 
+
+
+// In-memory store for verification codes (this is temporary)
+let verificationCodes = {};
+
+// Send 4-digit code via email
+const sendVerificationCode = async (email) => {
+  const code = crypto.randomInt(1000, 9999); // Generate a random 4-digit code
+
+  // Store the code in memory with an expiration time (e.g., 10 minutes)
+  verificationCodes[email] = {
+    code: code,
+    expiresAt: Date.now() + 10 * 60 * 1000, // Code expires in 10 minutes
+  };
+
+  // Send the code via email using nodemailer
+  const transporter = nodemailer.createTransport({
+    service: 'gmail',
+    auth: {
+      user: process.env.EMAIL_USER, // Your email here
+      pass: process.env.EMAIL_PASS, // Your email password or app password here
+    },
+  });
+
+  const mailOptions = {
+    from: process.env.EMAIL_USER,
+    to: email,
+    subject: 'Your 4-Digit Verification Code',
+    text: `Your verification code is: ${code}`,
+  };
+
+  await transporter.sendMail(mailOptions);
+};
+
+// Verify the code and register the user
+const verifyCodeAndRegister = async (email, code) => {
+  // Check if the code is in memory for this email
+  const storedCode = verificationCodes[email];
+
+  if (!storedCode) {
+    throw new Error('No verification code sent to this email');
+  }
+
+  // Check if the verification code has expired
+  if (storedCode.expiresAt < Date.now()) {
+    delete verificationCodes[email]; // Remove expired code from memory
+    throw new Error('Verification code expired');
+  }
+
+  // Check if the provided code matches the stored code
+  if (storedCode.code !== code) {
+    throw new Error('Invalid verification code');
+  }
+
+  // Check if the user already exists
+  let user = await User.findOne({ where: { email } });
+
+  if (user) {
+    // If user exists, just log them in by generating tokens
+    const payload = { userId: user.id };
+    const tokens = tokenUtils.generateTokenPair(payload);
+    return { user, tokens }; // Return the existing user and tokens
+  }
+
+  // If user does not exist, create a new user
+  user = await User.create({
+    email,
+    password: '', // You can set an empty password or leave it for now
+    name: '', // Empty name, you can update this later if needed
+  });
+
+  // Generate tokens for the new user
+  const payload = { userId: user.id };
+  const tokens = tokenUtils.generateTokenPair(payload);
+
+  await user.save(); // Save the new user
+
+  // Optionally, clear the code after successful registration
+  delete verificationCodes[email]; // Remove code from memory after use
+
+  return { user, tokens }; // Return the new user and tokens
+};
+
+
+
+
 module.exports = {
   registerUser,
   loginUser,
@@ -158,4 +244,6 @@ module.exports = {
   resetPassword,
   sendEmailVerification,
   verifyEmail,
+  sendVerificationCode,
+  verifyCodeAndRegister,
 };

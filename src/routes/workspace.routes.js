@@ -36,7 +36,7 @@ const authMiddleware = require('../middlewares/auth.middleware');
  *       500:
  *         description: Failed to create workspace
  */
-router.post('/create', authMiddleware, workspaceController.createWorkspace);
+router.post('/create', workspaceController.createWorkspace);
 
 /**
  * @swagger
