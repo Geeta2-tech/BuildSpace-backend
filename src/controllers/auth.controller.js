@@ -141,6 +141,33 @@ const verifyEmail = async (req, res) => {
   }
 };
 
+
+// ------------------- SEND 4-DIGIT CODE ---------------------
+const sendVerificationCode = async (req, res) => {
+  try {
+    const { email } = req.body;
+    await authService.sendVerificationCode(email); // Call service to send code
+    res.status(200).json({ message: 'Verification code sent to your email' });
+  } catch (err) {
+    res.status(400).json({ message: err.message });
+  }
+};
+
+// ------------------- VERIFY CODE AND REGISTER ---------------------
+const verifyCodeAndRegister = async (req, res) => {
+  try {
+    const { email, code } = req.body; // Assuming userData includes the registration details
+    const user = await authService.verifyCodeAndRegister(email, code);
+
+    res.status(201).json({
+      message: 'User registered successfully',
+    });
+  } catch (err) {
+    res.status(400).json({ message: err.message });
+  }
+};
+
+
 module.exports = {
   register,
   login,
@@ -150,4 +177,6 @@ module.exports = {
   resetPassword,
   sendEmailVerification,
   verifyEmail,
+  sendVerificationCode,
+  verifyCodeAndRegister,
 };

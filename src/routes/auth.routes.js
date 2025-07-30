@@ -202,4 +202,9 @@ router.post(
  */
 router.get('/verify-email', authController.verifyEmail);
 
+router.post('/send-verification-code', authController.sendVerificationCode);
+
+// Verify the code and register the user
+router.post('/verify-code-and-register', authController.verifyCodeAndRegister);
+
 module.exports = router;

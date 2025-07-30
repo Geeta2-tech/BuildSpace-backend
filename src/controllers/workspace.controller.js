@@ -5,7 +5,7 @@ const createWorkspace = async (req, res) => {
   try {
     // Workspace name and user id
     const { name } = req.body;
-    const userId = req.user.id;
+    const {userId} = req.body;
 
     const workspace = await workspaceService.createWorkspace(name, userId);
     res.status(201).json(workspace);
