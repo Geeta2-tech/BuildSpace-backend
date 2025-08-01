@@ -5,7 +5,9 @@ const createWorkspace = async (req, res) => {
   try {
     // Workspace name and user id
     const { name } = req.body;
-    const { userId } = req.body;
+
+    const userId = req.user.id;
+
 
     const workspace = await workspaceService.createWorkspace(name, userId);
     res.status(201).json(workspace);
@@ -83,13 +85,12 @@ const addMember = async (req, res) => {
   try {
     // Workspace id, user id, role and current user id
     const { workspaceId } = req.query;
-    const { userId, role } = req.body; // userId = user to add
+    const { members } = req.body; // userId = user to add
     const currentUserId = req.user.id;
 
-    const result = await workspaceService.addWorkspaceMember(
+    const result = await workspaceService.addWorkspaceMembers(
       workspaceId,
-      userId,
-      role,
+      members,
       currentUserId
     );
 
