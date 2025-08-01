@@ -9,7 +9,7 @@ const register = async (req, res) => {
       .cookie('accessToken', tokens.accessToken, {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
-        maxAge: 15 * 60 * 1000,
+        maxAge: 7 * 24 * 60 * 60 * 1000,
       })
       .cookie('refreshToken', tokens.refreshToken, {
         httpOnly: true,
@@ -40,7 +40,7 @@ const login = async (req, res) => {
       .cookie('accessToken', tokens.accessToken, {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
-        maxAge: 15 * 60 * 1000,
+        maxAge: 7 * 24 * 60 * 60 * 1000,
       })
       .cookie('refreshToken', tokens.refreshToken, {
         httpOnly: true,
