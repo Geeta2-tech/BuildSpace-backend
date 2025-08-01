@@ -58,30 +58,44 @@ const deleteWorkspace = async (workspaceId, userId) => {
   return true;
 };
 
-const addWorkspaceMember = async (
-  workspaceId,
-  userIdToAdd,
-  role,
-  currentUserId
-) => {
+const addWorkspaceMembers = async (workspaceId, members, currentUserId) => {
   // Get workspace
   const workspace = await Workspace.findByPk(workspaceId);
   if (!workspace || workspace.ownerId !== currentUserId) return null;
 
-  // Check if user is already a member
-  const existing = await WorkspaceMember.findOne({
-    where: { workspaceId, userId: userIdToAdd },
-  });
-  if (existing) return 'already_member';
+  // Iterate over the list of members
+  const results = [];
+  for (const { email, role } of members) {
+    // Check if the user with the provided email exists
+    const user = await User.findOne({ where: { email } });
+    if (!user) {
+      // If user doesn't exist, skip adding them
+      results.push({ email, status: 'user_not_found' });
+      continue;
+    }
 
-  // Add member
-  const member = await WorkspaceMember.create({
-    workspaceId,
-    userId: userIdToAdd,
-    role,
-  });
+    // Check if the user is already a member
+    const existing = await WorkspaceMember.findOne({
+      where: { workspaceId, userId: user.id },
+    });
+    if (existing) {
+      // If user is already a member, skip adding them
+      results.push({ email, status: 'already_member' });
+      continue;
+    }
 
-  return member;
+    // Add the member to the workspace
+    await WorkspaceMember.create({
+      workspaceId,
+      userId: user.id,
+      role,
+    });
+
+    // Add the result to the results array
+    results.push({ email, status: 'added', role });
+  }
+
+  return results;
 };
 
 const removeWorkspaceMember = async (
@@ -134,7 +148,7 @@ module.exports = {
   getUserWorkspaces,
   renameWorkspace,
   deleteWorkspace,
-  addWorkspaceMember,
+  addWorkspaceMembers,
   removeWorkspaceMember,
   getWorkspaceMembers,
 };

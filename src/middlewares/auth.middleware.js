@@ -4,7 +4,7 @@ const { User } = require('../models');
 const authMiddleware = async (req, res, next) => {
   try {
     // Get token from Authorization header
-    
+
     const token = req.cookies.accessToken;
     const decoded = tokenUtils.verifyAccessToken(token);
 
