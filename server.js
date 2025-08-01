@@ -35,17 +35,19 @@ wss.on('connection', (ws) => {
           // Client joins a specific page/block
           clientSessions.set(ws, {
             pageId: data.pageId,
-            blockId: data.blockId
+            blockId: data.blockId,
           });
-          
+
           // Send current block data to the joining client
           if (data.blockId) {
             const block = await Block.findByPk(data.blockId);
             if (block) {
-              ws.send(JSON.stringify({
-                type: 'initial_data',
-                data: block.data
-              }));
+              ws.send(
+                JSON.stringify({
+                  type: 'initial_data',
+                  data: block.data,
+                })
+              );
             }
           }
           break;
@@ -64,7 +66,7 @@ wss.on('connection', (ws) => {
               const newBlock = await Block.create({
                 pageId: session.pageId,
                 type: 'text',
-                data: data.content
+                data: data.content,
               });
               session.blockId = newBlock.id;
               clientSessions.set(ws, session);
@@ -73,15 +75,19 @@ wss.on('connection', (ws) => {
             // Broadcast to other clients on the same page
             wss.clients.forEach((client) => {
               const clientSession = clientSessions.get(client);
-              if (client !== ws && 
-                  client.readyState === WebSocket.OPEN && 
-                  clientSession && 
-                  clientSession.pageId === session.pageId) {
-                client.send(JSON.stringify({
-                  type: 'text_update',
-                  content: data.content,
-                  blockId: session.blockId
-                }));
+              if (
+                client !== ws &&
+                client.readyState === WebSocket.OPEN &&
+                clientSession &&
+                clientSession.pageId === session.pageId
+              ) {
+                client.send(
+                  JSON.stringify({
+                    type: 'text_update',
+                    content: data.content,
+                    blockId: session.blockId,
+                  })
+                );
               }
             });
           }
@@ -99,14 +105,16 @@ wss.on('connection', (ws) => {
               { where: { id: session.blockId } }
             );
           }
-          
+
           // Broadcast to other clients
           wss.clients.forEach((client) => {
             const clientSession = clientSessions.get(client);
-            if (client !== ws && 
-                client.readyState === WebSocket.OPEN && 
-                clientSession && 
-                clientSession.pageId === session.pageId) {
+            if (
+              client !== ws &&
+              client.readyState === WebSocket.OPEN &&
+              clientSession &&
+              clientSession.pageId === session.pageId
+            ) {
               client.send(message);
             }
           });
