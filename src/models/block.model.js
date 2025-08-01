@@ -11,11 +11,11 @@ const Block = sequelize.define('Block', {
   },
   type: {
     type: DataTypes.STRING,
-    allowNull: false,  // type of block (e.g., paragraph, image, etc.)
+    allowNull: false, // type of block (e.g., paragraph, image, etc.)
   },
   data: {
     type: DataTypes.JSON,
-    allowNull: false,  // data content for the block (could be rich text, image URLs, etc.)
+    allowNull: false, // data content for the block (could be rich text, image URLs, etc.)
   },
 });
 

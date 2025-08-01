@@ -1,52 +1,9 @@
-// // Import necessary modules
-// const dotenv = require('dotenv');
-// const app = require('./src/app');
-// const http = require('http');
-// const WebSocket = require('ws');
-
-// // Load environment variables from .env file
-// dotenv.config();
-
-// // Port configuration
-// const PORT = process.env.PORT || 3000;
-
-// // Create an HTTP server from your Express app
-// const server = http.createServer(app);
-
-// // Create the WebSocket server and attach it to the same HTTP server
-// const wss = new WebSocket.Server({ server });
-
-// // WebSocket connection handler
-// wss.on('connection', (ws) => {
-//   console.log('Client connected');
-  
-//   // Handle message from client
-//   ws.on('message', (message) => {
-//     console.log('received: %s', message);
-//     // Broadcast the message to all connected clients
-//     wss.clients.forEach(client => {
-//       if (client !== ws && client.readyState === WebSocket.OPEN) {
-//         client.send(message);
-//       }
-//     });
-//   });
-
-//   // Handle client disconnection
-//   ws.on('close', () => {
-//     console.log('Client disconnected');
-//   });
-// });
-
-// // Start the HTTP server (which also includes WebSocket server)
-// server.listen(PORT, () => {
-//   console.log(`Server is running on port ${PORT}`);
-// });
-
+// Import necessary modules
 const dotenv = require('dotenv');
 const app = require('./src/app');
 const http = require('http');
 const WebSocket = require('ws');
-const { Block } = require('./src/models');  // Assuming you have a Block model
+const Block = require('./src/models/block.model'); // Add this import
 
 // Load environment variables from .env file
 dotenv.config();
@@ -60,69 +17,118 @@ const server = http.createServer(app);
 // Create the WebSocket server and attach it to the same HTTP server
 const wss = new WebSocket.Server({ server });
 
-// Store workspaces and their clients
-const workspaces = {};
+// Store client sessions with their pageId and blockId
+const clientSessions = new Map();
 
 // WebSocket connection handler
 wss.on('connection', (ws) => {
-  let currentWorkspace = null;
-
   console.log('Client connected');
 
   // Handle message from client
   ws.on('message', async (message) => {
     try {
       const data = JSON.parse(message);
+      console.log('Received:', data);
 
-      // Handle user joining a workspace
-      if (data.action === 'join') {
-        currentWorkspace = data.workspaceId;
-        if (!workspaces[currentWorkspace]) {
-          workspaces[currentWorkspace] = new Set();
-        }
-        workspaces[currentWorkspace].add(ws);
-        console.log(`Client joined workspace: ${currentWorkspace}`);
-        return;
-      }
+      switch (data.type) {
+        case 'join':
+          // Client joins a specific page/block
+          clientSessions.set(ws, {
+            pageId: data.pageId,
+            blockId: data.blockId,
+          });
 
-      // Handle text updates in blocks
-      if (data.action === 'update' && data.workspaceId && data.pageId && data.blockId && data.text) {
-        const { workspaceId, pageId, blockId, text, userId } = data;
-        console.log(data);
-
-        // Save the text update to the database
-        const block = await Block.findOne({ where: { id: blockId, pageId: pageId } });
-        if (block) {
-          block.data = text;  // Update the block text
-          await block.save(); // Persist the change in the database
-        }
-
-        // Broadcast the updated text to other users in the same workspace
-        const updatedMessage = {
-          action: 'update',
-          text,
-          blockId,
-          userId,
-          timestamp: Date.now(),
-        };
-
-        workspaces[workspaceId].forEach(client => {
-          if (client !== ws && client.readyState === WebSocket.OPEN) {
-            client.send(JSON.stringify(updatedMessage));  // Send update to all connected users
+          // Send current block data to the joining client
+          if (data.blockId) {
+            const block = await Block.findByPk(data.blockId);
+            if (block) {
+              ws.send(
+                JSON.stringify({
+                  type: 'initial_data',
+                  data: block.data,
+                })
+              );
+            }
           }
-        });
+          break;
+
+        case 'text_update':
+          const session = clientSessions.get(ws);
+          if (session) {
+            // Update block in database
+            if (session.blockId) {
+              await Block.update(
+                { data: data.content },
+                { where: { id: session.blockId } }
+              );
+            } else {
+              // Create new block if none exists
+              const newBlock = await Block.create({
+                pageId: session.pageId,
+                type: 'text',
+                data: data.content,
+              });
+              session.blockId = newBlock.id;
+              clientSessions.set(ws, session);
+            }
+
+            // Broadcast to other clients on the same page
+            wss.clients.forEach((client) => {
+              const clientSession = clientSessions.get(client);
+              if (
+                client !== ws &&
+                client.readyState === WebSocket.OPEN &&
+                clientSession &&
+                clientSession.pageId === session.pageId
+              ) {
+                client.send(
+                  JSON.stringify({
+                    type: 'text_update',
+                    content: data.content,
+                    blockId: session.blockId,
+                  })
+                );
+              }
+            });
+          }
+          break;
       }
     } catch (error) {
-      console.error('Error handling message:', error);
+      console.error('Error processing message:', error);
+      // Handle plain text messages (backward compatibility)
+      const session = clientSessions.get(ws);
+      if (session) {
+        try {
+          if (session.blockId) {
+            await Block.update(
+              { data: message.toString() },
+              { where: { id: session.blockId } }
+            );
+          }
+
+          // Broadcast to other clients
+          wss.clients.forEach((client) => {
+            const clientSession = clientSessions.get(client);
+            if (
+              client !== ws &&
+              client.readyState === WebSocket.OPEN &&
+              clientSession &&
+              clientSession.pageId === session.pageId
+            ) {
+              client.send(message);
+            }
+          });
+        } catch (dbError) {
+          console.error('Database error:', dbError);
+        }
+      }
     }
   });
 
   // Handle client disconnection
   ws.on('close', () => {
     console.log('Client disconnected');
-    if (currentWorkspace) {
-      workspaces[currentWorkspace].delete(ws);
-    }
+    clientSessions.delete(ws);
   });
 });
 

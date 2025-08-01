@@ -21,7 +21,11 @@
     "docker:stop": "docker stop buildspace_backend"
   },
   "dependencies": {
+
+    "axios": "^1.11.0",
+
     "@teamwork/websocket-json-stream": "^2.0.0",
+
     "bcrypt": "^6.0.0",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",

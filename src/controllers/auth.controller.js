@@ -141,7 +141,6 @@ const verifyEmail = async (req, res) => {
   }
 };
 
-
 // ------------------- SEND 4-DIGIT CODE ---------------------
 const sendVerificationCode = async (req, res) => {
   try {
@@ -157,16 +156,50 @@ const sendVerificationCode = async (req, res) => {
 const verifyCodeAndRegister = async (req, res) => {
   try {
     const { email, code } = req.body; // Assuming userData includes the registration details
-    const user = await authService.verifyCodeAndRegister(email, code);
+    const { user, tokens } = await authService.verifyCodeAndRegister(
+      email,
+      code
+    );
+
+    // res
+    //   .cookie('accessToken', tokens.accessToken, {
+    //     httpOnly: true,
+    //     secure: process.env.NODE_ENV === 'production',
+    //     maxAge: 15 * 60 * 1000,
+    //   })
+    //   .cookie('refreshToken', tokens.refreshToken, {
+    //     httpOnly: true,
+    //     secure: process.env.NODE_ENV === 'production',
+    //     maxAge: 7 * 24 * 60 * 60 * 1000,
+    //   })
+    //   .status(201)
+    //   .json({
+    //     user: {
+    //       id: user.id,
+    //       name: user.name,
+    //       email: user.email,
+    //       avatar: user.avatar,
+    //       email_verified: user.email_verified,
+    //     },
+    //   });
 
     res.status(201).json({
-      message: 'User registered successfully',
+      user: {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        avatar: user.avatar,
+        email_verified: user.email_verified,
+      },
+      tokens: {
+        accessToken: tokens.accessToken,
+        refreshToken: tokens.refreshToken,
+      },
     });
   } catch (err) {
     res.status(400).json({ message: err.message });
   }
 };
-
 
 module.exports = {
   register,
