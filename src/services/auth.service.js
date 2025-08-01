@@ -150,10 +150,8 @@ const verifyEmail = async (token) => {
   return true;
 };
 
-
-
 // In-memory store for verification codes (this is temporary)
-let verificationCodes = {};
+const verificationCodes = {};
 
 // Send 4-digit code via email
 const sendVerificationCode = async (email) => {
@@ -188,7 +186,8 @@ const sendVerificationCode = async (email) => {
 const verifyCodeAndRegister = async (email, code) => {
   // Check if the code is in memory for this email
   const storedCode = verificationCodes[email];
-
+  console.log('Stored Code:', storedCode.code);
+  console.log('Received Code:', code);
   if (!storedCode) {
     throw new Error('No verification code sent to this email');
   }
@@ -232,9 +231,6 @@ const verifyCodeAndRegister = async (email, code) => {
 
   return { user, tokens }; // Return the new user and tokens
 };
-
-
-
 
 module.exports = {
   registerUser,
