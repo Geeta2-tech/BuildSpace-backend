@@ -166,7 +166,7 @@ const tokenUtils = {
   /**
    * Generate access token
    */
-  generateAccessToken: (payload, expiresIn = '15m') => {
+  generateAccessToken: (payload, expiresIn = '7d') => {
     try {
       return jwt.sign(payload, config.jwtSecret, {
         expiresIn,
