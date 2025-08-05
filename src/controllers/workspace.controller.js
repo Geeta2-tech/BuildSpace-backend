@@ -8,7 +8,6 @@ const createWorkspace = async (req, res) => {
 
     const userId = req.user.id;
 
-
     const workspace = await workspaceService.createWorkspace(name, userId);
     res.status(201).json(workspace);
   } catch (err) {

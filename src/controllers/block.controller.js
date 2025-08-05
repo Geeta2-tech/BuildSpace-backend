@@ -31,11 +31,11 @@ exports.getAllBlocks = async (req, res) => {
     const pageId = req.query.pageId;
 
     // Fetch blocks for the page
-    const blocks = await Block.findAll({ 
+    const blocks = await Block.findAll({
       where: { pageId },
-      order: [['createdAt', 'ASC']] // Order by creation time
+      order: [['createdAt', 'ASC']], // Order by creation time
     });
-    
+
     if (!blocks.length) {
       return res.status(404).json({ message: 'No blocks found for this page' });
     }
@@ -77,7 +77,7 @@ exports.updateBlock = async (req, res) => {
     // Update the block data
     if (data !== undefined) block.data = data;
     if (type !== undefined) block.type = type;
-    
+
     await block.save();
 
     res.status(200).json({ message: 'Block updated successfully', block });
@@ -96,7 +96,7 @@ exports.bulkUpdateBlocks = async (req, res) => {
     }
 
     const results = [];
-    
+
     for (const update of updates) {
       try {
         const block = await Block.findByPk(update.id);
@@ -106,7 +106,11 @@ exports.bulkUpdateBlocks = async (req, res) => {
           await block.save();
           results.push({ id: update.id, success: true, block });
         } else {
-          results.push({ id: update.id, success: false, error: 'Block not found' });
+          results.push({
+            id: update.id,
+            success: false,
+            error: 'Block not found',
+          });
         }
       } catch (error) {
         results.push({ id: update.id, success: false, error: error.message });
@@ -125,7 +129,7 @@ exports.upsertBlock = async (req, res) => {
     const { pageId, blockId, type, data } = req.body;
 
     let block;
-    
+
     if (blockId) {
       // Try to update existing block
       block = await Block.findByPk(blockId);
@@ -142,13 +146,15 @@ exports.upsertBlock = async (req, res) => {
       if (!page) {
         return res.status(404).json({ message: 'Page not found' });
       }
-      
+
       block = await Block.create({ pageId, type: type || 'text', data });
     }
 
-    res.status(200).json({ 
-      message: blockId ? 'Block updated successfully' : 'Block created successfully', 
-      block 
+    res.status(200).json({
+      message: blockId
+        ? 'Block updated successfully'
+        : 'Block created successfully',
+      block,
     });
   } catch (error) {
     res.status(500).json({ message: 'Error upserting block', error });
@@ -181,7 +187,7 @@ exports.getLatestBlock = async (req, res) => {
 
     const block = await Block.findOne({
       where: { pageId },
-      order: [['updatedAt', 'DESC']]
+      order: [['updatedAt', 'DESC']],
     });
 
     if (!block) {
