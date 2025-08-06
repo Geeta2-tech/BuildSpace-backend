@@ -186,7 +186,8 @@ const sendVerificationCode = async (email) => {
 const verifyCodeAndRegister = async (email, code) => {
   // Check if the code is in memory for this email
   const storedCode = verificationCodes[email];
-
+  console.log('Stored Code:', storedCode.code);
+  console.log('Received Code:', code);
   if (!storedCode) {
     throw new Error('No verification code sent to this email');
   }
