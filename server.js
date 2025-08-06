@@ -3,7 +3,7 @@ const dotenv = require('dotenv');
 const app = require('./src/app');
 const http = require('http');
 const WebSocket = require('ws');
-const { Block } = require('./src/models'); // Assuming you have a Block model
+const Block = require('./src/models/block.model');
 
 // Load environment variables from .env file
 dotenv.config();
@@ -32,27 +32,20 @@ wss.on('connection', (ws) => {
 
       switch (data.type) {
         case 'join':
-          // Client joins a specific page
+          // Client joins a specific page - only use pageId from frontend
           const session = {
             pageId: data.pageId,
-            blockId: data.blockId,
+            blockId: null, // Will be set when we find/create a block
           };
           clientSessions.set(ws, session);
 
-          // Load existing data for this page
+          // Load existing block for this page
           try {
-            let existingBlock;
-
-            if (data.blockId) {
-              // If specific blockId is provided, load that block
-              existingBlock = await Block.findByPk(data.blockId);
-            } else {
-              // If no blockId, find the first block for this page (or you could get all blocks)
-              existingBlock = await Block.findOne({
-                where: { pageId: data.pageId },
-                order: [['createdAt', 'ASC']], // Get the oldest block first
-              });
-            }
+            // Find the first block for this page (you can modify the order as needed)
+            const existingBlock = await Block.findOne({
+              where: { pageId: data.pageId },
+              order: [['createdAt', 'ASC']], // Get the oldest block first
+            });
 
             if (existingBlock) {
               // Update session with the found block ID
@@ -65,7 +58,11 @@ wss.on('connection', (ws) => {
                   type: 'initial_data',
                   data: existingBlock.data,
                   blockId: existingBlock.id,
+                  pageId: data.pageId,
                 })
+              );
+              console.log(
+                `Loaded existing block ${existingBlock.id} for page ${data.pageId}`
               );
             } else {
               // No existing block found, send empty data
@@ -74,8 +71,10 @@ wss.on('connection', (ws) => {
                   type: 'initial_data',
                   data: '',
                   blockId: null,
+                  pageId: data.pageId,
                 })
               );
+              console.log(`No existing block found for page ${data.pageId}`);
             }
           } catch (error) {
             console.error('Error loading existing data:', error);
@@ -84,6 +83,7 @@ wss.on('connection', (ws) => {
                 type: 'initial_data',
                 data: '',
                 blockId: null,
+                pageId: data.pageId,
               })
             );
           }
@@ -108,7 +108,7 @@ wss.on('connection', (ws) => {
                   `Updated existing block ${blockId} for page ${currentSession.pageId}`
                 );
               } else {
-                // Create new block only if none exists for this page
+                // Create new block for this page
                 const newBlock = await Block.create({
                   pageId: currentSession.pageId,
                   type: 'text',
@@ -138,6 +138,7 @@ wss.on('connection', (ws) => {
                       type: 'text_update',
                       content: data.content,
                       blockId: blockId,
+                      pageId: currentSession.pageId,
                     })
                   );
                 }
@@ -167,7 +168,7 @@ wss.on('connection', (ws) => {
               { where: { id: blockId } }
             );
           } else {
-            // Create new block
+            // Create new block for this page
             const newBlock = await Block.create({
               pageId: session.pageId,
               type: 'text',
@@ -178,7 +179,7 @@ wss.on('connection', (ws) => {
             clientSessions.set(ws, session);
           }
 
-          // Broadcast to other clients
+          // Broadcast to other clients on the same page
           wss.clients.forEach((client) => {
             const clientSession = clientSessions.get(client);
             if (
