@@ -134,21 +134,25 @@ const inviteWorkspaceMembers = async (
 };
 
 const acceptWorkspaceInvitation = async (token, userId) => {
+  console.log('Accepting invitation with token (Backend Service):', token);
   const invitation = await WorkspaceInvitation.findOne({
     where: {
       token,
-      expiresAt: { [Op.gt]: new Date() },
     },
   });
+
+  console.log('Invitation found:', invitation);
 
   if (!invitation) {
     throw new Error('Invalid or expired invitation token.');
   }
 
-  const user = await User.findOne({ where: { email: invitation.email } });
-  if (!user) {
+  const user = await User.findByPk(userId);
+  if (!user || user.email !== invitation.email) {
     throw new Error('This invitation is for a different user.');
   }
+
+  console.log('User found:', user);
 
   const isAlreadyMember = await WorkspaceMember.findOne({
     where: {
@@ -161,6 +165,8 @@ const acceptWorkspaceInvitation = async (token, userId) => {
     await invitation.destroy();
     return { status: 'already_member', workspaceId: invitation.workspaceId };
   }
+
+  console.log('Adding user to workspace:', invitation.workspaceId);
 
   await WorkspaceMember.create({
     workspaceId: invitation.workspaceId,
@@ -187,10 +193,15 @@ const getPendingInvitations = async (userId) => {
     },
     // Include workspace details to show in the notification
     include: {
+      as: 'workspace',
       model: Workspace,
       attributes: ['name'],
     },
   });
+
+  if (!invitations || invitations.length === 0) {
+    return [];
+  }
 
   return invitations;
 };
@@ -220,13 +231,9 @@ const declineWorkspaceInvitation = async (token, userId) => {
   return { status: 'declined' };
 };
 
-const removeWorkspaceMember = async (
-  workspaceId,
-  userIdToRemove,
-  currentUserId
-) => {
+const removeWorkspaceMember = async (workspaceId, userIdToRemove) => {
   const workspace = await Workspace.findByPk(workspaceId);
-  if (!workspace || workspace.ownerId !== currentUserId) return null;
+  if (!workspace) return null;
   const removed = await WorkspaceMember.destroy({
     where: { workspaceId, userId: userIdToRemove },
   });

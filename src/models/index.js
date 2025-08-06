@@ -4,6 +4,7 @@ const WorkspaceMember = require('./workspacemember.model');
 const Page = require('./page.model');
 const Block = require('./block.model');
 const WorkspaceInvitation = require('./workspaceInvitation.model');
+const EmailVerificationToken = require('./emailverificationtoken.model');
 
 // ========== ASSOCIATIONS ========== //
 
@@ -83,6 +84,27 @@ Page.belongsTo(Page, {
   onDelete: 'CASCADE',
 });
 
+Workspace.hasMany(WorkspaceInvitation, {
+  foreignKey: 'workspaceId',
+  as: 'invitations',
+  onDelete: 'CASCADE',
+});
+WorkspaceInvitation.belongsTo(Workspace, {
+  foreignKey: 'workspaceId',
+  as: 'workspace',
+});
+
+User.hasOne(EmailVerificationToken, {
+  foreignKey: 'userId',
+  as: 'emailVerificationToken',
+  onDelete: 'CASCADE',
+});
+
+EmailVerificationToken.belongsTo(User, {
+  foreignKey: 'userId',
+  as: 'user',
+});
+
 module.exports = {
   User,
   Workspace,
@@ -90,4 +112,5 @@ module.exports = {
   Page,
   Block,
   WorkspaceInvitation,
+  EmailVerificationToken,
 };
