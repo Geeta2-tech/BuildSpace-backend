@@ -201,6 +201,19 @@ const verifyCodeAndRegister = async (req, res) => {
   }
 };
 
+const getCurrentUser = async (req, res) => {
+  try {
+    const user = req.user; // from auth middleware
+    res.status(200).json({
+      id: user.id,
+      name: user.name,
+      email: user.email,
+    });
+  } catch (err) {
+    res.status(400).json({ message: err.message });
+  }
+};
+
 module.exports = {
   register,
   login,
@@ -212,4 +225,5 @@ module.exports = {
   verifyEmail,
   sendVerificationCode,
   verifyCodeAndRegister,
+  getCurrentUser,
 };

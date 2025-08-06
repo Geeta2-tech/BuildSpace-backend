@@ -3,6 +3,7 @@ const Workspace = require('./workspace.model');
 const WorkspaceMember = require('./workspacemember.model');
 const Page = require('./page.model');
 const Block = require('./block.model');
+const WorkspaceInvitation = require('./workspaceInvitation.model');
 
 // ========== ASSOCIATIONS ========== //
 
@@ -88,4 +89,5 @@ module.exports = {
   WorkspaceMember,
   Page,
   Block,
+  WorkspaceInvitation,
 };

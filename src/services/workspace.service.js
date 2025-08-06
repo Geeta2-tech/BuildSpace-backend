@@ -1,27 +1,37 @@
-const { Workspace, WorkspaceMember, User } = require('../models');
+const {
+  Workspace,
+  WorkspaceMember,
+  User,
+  WorkspaceInvitation,
+} = require('../models');
+const { Op } = require('sequelize');
+const crypto = require('crypto');
+const nodemailer = require('nodemailer');
+
+// Nodemailer transporter setup
+const transporter = nodemailer.createTransport({
+  service: 'gmail',
+  auth: {
+    user: process.env.EMAIL_USER,
+    pass: process.env.EMAIL_PASS,
+  },
+});
 
 const createWorkspace = async (name, ownerId) => {
-  // Create workspace
   const workspace = await Workspace.create({ name, ownerId });
-
-  // Add owner
   await WorkspaceMember.create({
     workspaceId: workspace.id,
     userId: ownerId,
     role: 'owner',
   });
-
   return workspace;
 };
 
 const getUserWorkspaces = async (userId) => {
-  // Get owned workspaces
   const owned = await Workspace.findAll({
     where: { ownerId: userId },
     order: [['createdAt', 'DESC']],
   });
-
-  // Get shared workspaces
   const shared = await Workspace.findAll({
     include: {
       model: WorkspaceMember,
@@ -29,73 +39,185 @@ const getUserWorkspaces = async (userId) => {
       where: { userId },
     },
     where: {
-      ownerId: { [require('sequelize').Op.ne]: userId },
+      ownerId: { [Op.ne]: userId },
     },
     order: [['createdAt', 'DESC']],
   });
-
   return { owned, shared };
 };
 
 const renameWorkspace = async (workspaceId, newName, userId) => {
-  // Get workspace
   const workspace = await Workspace.findByPk(workspaceId);
   if (!workspace || workspace.ownerId !== userId) return null;
-
-  // Update the name of the workspace
   workspace.name = newName;
   await workspace.save();
   return workspace;
 };
 
 const deleteWorkspace = async (workspaceId, userId) => {
-  // Get workspace
   const workspace = await Workspace.findByPk(workspaceId);
   if (!workspace || workspace.ownerId !== userId) return false;
-
-  // Delete the workspace
   await workspace.destroy();
   return true;
 };
 
-const addWorkspaceMembers = async (workspaceId, members, currentUserId) => {
-  // Get workspace
+const inviteWorkspaceMembers = async (
+  workspaceId,
+  members,
+  message,
+  currentUserId
+) => {
   const workspace = await Workspace.findByPk(workspaceId);
-  if (!workspace || workspace.ownerId !== currentUserId) return null;
+  if (!workspace || workspace.ownerId !== currentUserId) {
+    throw new Error('Unauthorized or workspace not found');
+  }
 
-  // Iterate over the list of members
   const results = [];
   for (const { email, role } of members) {
-    // Check if the user with the provided email exists
     const user = await User.findOne({ where: { email } });
     if (!user) {
-      // If user doesn't exist, skip adding them
       results.push({ email, status: 'user_not_found' });
       continue;
     }
 
-    // Check if the user is already a member
-    const existing = await WorkspaceMember.findOne({
+    const isAlreadyMember = await WorkspaceMember.findOne({
       where: { workspaceId, userId: user.id },
     });
-    if (existing) {
-      // If user is already a member, skip adding them
+    if (isAlreadyMember) {
       results.push({ email, status: 'already_member' });
       continue;
     }
 
-    // Add the member to the workspace
-    await WorkspaceMember.create({
+    const existingInvitation = await WorkspaceInvitation.findOne({
+      where: {
+        workspaceId,
+        email,
+        expiresAt: { [Op.gt]: new Date() },
+      },
+    });
+    if (existingInvitation) {
+      results.push({ email, status: 'invitation_pending' });
+      continue;
+    }
+
+    const token = crypto.randomBytes(32).toString('hex');
+    const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+
+    await WorkspaceInvitation.create({
       workspaceId,
-      userId: user.id,
+      email,
       role,
+      token,
+      expiresAt,
     });
 
-    // Add the result to the results array
-    results.push({ email, status: 'added', role });
+    const joinLink = `${process.env.FRONTEND_URL}/join-workspace?token=${token}`;
+
+    await transporter.sendMail({
+      from: `"BuildSpace" <${process.env.EMAIL_USER}>`,
+      to: email,
+      subject: `You're invited to join the "${workspace.name}" workspace!`,
+      html: `
+        <h2>You have been invited to join a workspace on BuildSpace!</h2>
+        <p>You've been invited to collaborate in the <strong>${workspace.name}</strong> workspace.</p>
+        ${message ? `<p><strong>Message from the inviter:</strong><br/><em>${message}</em></p>` : ''}
+        <p>Click the link below to accept the invitation:</p>
+        <a href="${joinLink}" style="background-color: #4f46e5; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">Join Workspace</a>
+        <p><small>This invitation is valid for 7 days.</small></p>
+      `,
+    });
+
+    results.push({ email, status: 'invitation_sent' });
   }
 
   return results;
+};
+
+const acceptWorkspaceInvitation = async (token, userId) => {
+  const invitation = await WorkspaceInvitation.findOne({
+    where: {
+      token,
+      expiresAt: { [Op.gt]: new Date() },
+    },
+  });
+
+  if (!invitation) {
+    throw new Error('Invalid or expired invitation token.');
+  }
+
+  const user = await User.findOne({ where: { email: invitation.email } });
+  if (!user) {
+    throw new Error('This invitation is for a different user.');
+  }
+
+  const isAlreadyMember = await WorkspaceMember.findOne({
+    where: {
+      workspaceId: invitation.workspaceId,
+      userId: user.id,
+    },
+  });
+
+  if (isAlreadyMember) {
+    await invitation.destroy();
+    return { status: 'already_member', workspaceId: invitation.workspaceId };
+  }
+
+  await WorkspaceMember.create({
+    workspaceId: invitation.workspaceId,
+    userId: user.id,
+    role: invitation.role,
+  });
+
+  await invitation.destroy();
+
+  return { status: 'success', workspaceId: invitation.workspaceId };
+};
+
+// **NEW**: Service to get all pending invitations for a user
+const getPendingInvitations = async (userId) => {
+  const user = await User.findByPk(userId);
+  if (!user) {
+    throw new Error('User not found.');
+  }
+
+  const invitations = await WorkspaceInvitation.findAll({
+    where: {
+      email: user.email,
+      expiresAt: { [Op.gt]: new Date() },
+    },
+    // Include workspace details to show in the notification
+    include: {
+      model: Workspace,
+      attributes: ['name'],
+    },
+  });
+
+  return invitations;
+};
+
+// **NEW**: Service to decline/reject an invitation
+const declineWorkspaceInvitation = async (token, userId) => {
+  const user = await User.findByPk(userId);
+  if (!user) {
+    throw new Error('User not found.');
+  }
+
+  const invitation = await WorkspaceInvitation.findOne({
+    where: {
+      token,
+      email: user.email, // Ensure the user is declining their own invitation
+    },
+  });
+
+  if (!invitation) {
+    throw new Error(
+      'Invitation not found or you are not authorized to decline it.'
+    );
+  }
+
+  // Simply delete the invitation
+  await invitation.destroy();
+  return { status: 'declined' };
 };
 
 const removeWorkspaceMember = async (
@@ -103,33 +225,20 @@ const removeWorkspaceMember = async (
   userIdToRemove,
   currentUserId
 ) => {
-  // Get workspace
   const workspace = await Workspace.findByPk(workspaceId);
   if (!workspace || workspace.ownerId !== currentUserId) return null;
-
-  // Remove member
   const removed = await WorkspaceMember.destroy({
     where: { workspaceId, userId: userIdToRemove },
   });
-
   return removed;
 };
 
 const getWorkspaceMembers = async (workspaceId, currentUserId) => {
-  // Get workspace
-  const workspace = await Workspace.findByPk(workspaceId);
-  if (!workspace) return null;
-
-  // You can restrict access to owner or members if needed
-  const isOwnerOrMember = await WorkspaceMember.findOne({
+  const isMember = await WorkspaceMember.findOne({
     where: { workspaceId, userId: currentUserId },
   });
+  if (!isMember) return 'forbidden';
 
-  // If not owner or member, return forbidden
-  if (!isOwnerOrMember && workspace.ownerId !== currentUserId)
-    return 'forbidden';
-
-  // Get members
   const members = await WorkspaceMember.findAll({
     where: { workspaceId },
     include: [
@@ -139,8 +248,20 @@ const getWorkspaceMembers = async (workspaceId, currentUserId) => {
       },
     ],
   });
-
   return members;
+};
+
+const getInvitationDetails = async (token) => {
+  const invitation = await WorkspaceInvitation.findOne({
+    where: { token },
+  });
+  if (!invitation) {
+    throw new Error('Invalid or expired invitation token.');
+  }
+  return {
+    workspaceId: invitation.workspaceId,
+    email: invitation.email,
+  };
 };
 
 module.exports = {
@@ -148,7 +269,11 @@ module.exports = {
   getUserWorkspaces,
   renameWorkspace,
   deleteWorkspace,
-  addWorkspaceMembers,
+  inviteWorkspaceMembers,
+  acceptWorkspaceInvitation,
+  getPendingInvitations,
+  declineWorkspaceInvitation,
   removeWorkspaceMember,
   getWorkspaceMembers,
+  getInvitationDetails,
 };

@@ -3,7 +3,6 @@ const workspaceService = require('../services/workspace.service');
 // ----------------------- CREATE WORKSPACE -----------------------
 const createWorkspace = async (req, res) => {
   try {
-    // Workspace name and user id
     const { name } = req.body;
 
     const userId = req.user.id;
@@ -20,11 +19,11 @@ const createWorkspace = async (req, res) => {
 // ----------------------- GET ALL WORKSPACES -----------------------
 const getAllWorkspaces = async (req, res) => {
   try {
-    // User id
     const userId = req.user.id;
     const { owned, shared } = await workspaceService.getUserWorkspaces(userId);
 
-    res.json({ owned, shared });
+    // Also return the current user's ID for frontend context
+    res.json({ owned, shared, currentUserId: userId });
   } catch (err) {
     res
       .status(500)
@@ -35,8 +34,7 @@ const getAllWorkspaces = async (req, res) => {
 // ----------------------- RENAME WORKSPACE -----------------------
 const renameWorkspace = async (req, res) => {
   try {
-    // Workspace id, new name and user id
-    const { workspaceId } = req.query;
+    const { workspaceId } = req.query; // Changed to req.query for RESTful routes
     const { name } = req.body;
     const userId = req.user.id;
 
@@ -61,8 +59,7 @@ const renameWorkspace = async (req, res) => {
 // ----------------------- DELETE WORKSPACE -----------------------
 const deleteWorkspace = async (req, res) => {
   try {
-    // Workspace id and user id
-    const { workspaceId } = req.query;
+    const { workspaceId } = req.query; // Changed to req.query
     const userId = req.user.id;
 
     const deleted = await workspaceService.deleteWorkspace(workspaceId, userId);
@@ -71,7 +68,7 @@ const deleteWorkspace = async (req, res) => {
         .status(403)
         .json({ error: 'Not authorized or workspace not found' });
 
-    res.json({ message: 'Workspace deleted' });
+    res.status(204).send(); // 204 No Content is more appropriate for a successful delete
   } catch (err) {
     res
       .status(500)
@@ -79,40 +76,32 @@ const deleteWorkspace = async (req, res) => {
   }
 };
 
-// ----------------------- ADD MEMBER -----------------------
-const addMember = async (req, res) => {
+// ----------------------- INVITE MEMBERS -----------------------
+const inviteMembers = async (req, res) => {
   try {
-    // Workspace id, user id, role and current user id
     const { workspaceId } = req.query;
-    const { members } = req.body; // userId = user to add
+    const { members, message } = req.body; // Expect members array and an optional message
     const currentUserId = req.user.id;
 
-    const result = await workspaceService.addWorkspaceMembers(
+    const results = await workspaceService.inviteWorkspaceMembers(
       workspaceId,
       members,
+      message,
       currentUserId
     );
 
-    if (!result)
-      return res
-        .status(403)
-        .json({ error: 'Not authorized or workspace not found' });
-    if (result === 'already_member')
-      return res.status(400).json({ error: 'User is already a member' });
-
-    res.status(201).json({ message: 'Member added', member: result });
+    res.status(200).json(results);
   } catch (err) {
     res
       .status(500)
-      .json({ error: 'Failed to add member', details: err.message });
+      .json({ error: 'Failed to send invitations', details: err.message });
   }
 };
 
 // ----------------------- REMOVE MEMBER -----------------------
 const removeMember = async (req, res) => {
   try {
-    // Workspace id, user id and current user id
-    const { workspaceId, userId } = req.query;
+    const { workspaceId, userId } = req.query; // Changed to req.query
     const currentUserId = req.user.id;
 
     const removed = await workspaceService.removeWorkspaceMember(
@@ -124,7 +113,7 @@ const removeMember = async (req, res) => {
     if (!removed)
       return res
         .status(403)
-        .json({ error: 'Not authorized or workspace not found' });
+        .json({ error: 'Not authorized or member not found' });
 
     res.json({ message: 'Member removed' });
   } catch (err) {
@@ -137,8 +126,7 @@ const removeMember = async (req, res) => {
 // ----------------------- GET MEMBERS -----------------------
 const getMembers = async (req, res) => {
   try {
-    // Workspace id and current user id
-    const { workspaceId } = req.query;
+    const { workspaceId } = req.query; // Changed to req.query
     const currentUserId = req.user.id;
 
     const result = await workspaceService.getWorkspaceMembers(
@@ -148,7 +136,6 @@ const getMembers = async (req, res) => {
 
     if (result === 'forbidden')
       return res.status(403).json({ error: 'Not authorized to view members' });
-
     if (!result) return res.status(404).json({ error: 'Workspace not found' });
 
     res.json({ members: result });
@@ -159,12 +146,79 @@ const getMembers = async (req, res) => {
   }
 };
 
+// ----------------------- GET PENDING INVITATIONS -----------------------
+const getPendingInvitations = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const invitations = await workspaceService.getPendingInvitations(userId);
+    res.json(invitations);
+  } catch (err) {
+    res
+      .status(500)
+      .json({ error: 'Failed to fetch invitations', details: err.message });
+  }
+};
+
+// ----------------------- ACCEPT INVITATION -----------------------
+const acceptInvitation = async (req, res) => {
+  try {
+    const { token } = req.body;
+    const userId = req.user.id;
+    const result = await workspaceService.acceptWorkspaceInvitation(
+      token,
+      userId
+    );
+    res.json(result);
+  } catch (err) {
+    res
+      .status(400)
+      .json({ error: 'Failed to accept invitation', details: err.message });
+  }
+};
+
+// ----------------------- DECLINE INVITATION -----------------------
+const declineInvitation = async (req, res) => {
+  try {
+    const { token } = req.body;
+    const userId = req.user.id;
+    const result = await workspaceService.declineWorkspaceInvitation(
+      token,
+      userId
+    );
+    res.json(result);
+  } catch (err) {
+    res
+      .status(400)
+      .json({ error: 'Failed to decline invitation', details: err.message });
+  }
+};
+
+const getInvitationDetails = async (req, res) => {
+  try {
+    const { token } = req.query; // Changed to req.query
+    const invitation = await workspaceService.getInvitationDetails(token);
+    if (!invitation) {
+      return res.status(404).json({ error: 'Invitation not found' });
+    }
+    res.json(invitation);
+  } catch (err) {
+    res.status(500).json({
+      error: 'Failed to fetch invitation details',
+      details: err.message,
+    });
+  }
+};
+
 module.exports = {
   createWorkspace,
   getAllWorkspaces,
   renameWorkspace,
   deleteWorkspace,
-  addMember,
+  inviteMembers,
   removeMember,
   getMembers,
+  getPendingInvitations,
+  acceptInvitation,
+  declineInvitation,
+  getInvitationDetails,
 };

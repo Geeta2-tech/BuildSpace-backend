@@ -3,7 +3,7 @@ const dotenv = require('dotenv');
 const app = require('./src/app');
 const http = require('http');
 const WebSocket = require('ws');
-const Block = require('./src/models/block.model');
+const { Block } = require('./src/models'); // Assuming you have a Block model
 
 // Load environment variables from .env file
 dotenv.config();
@@ -42,7 +42,7 @@ wss.on('connection', (ws) => {
           // Load existing data for this page
           try {
             let existingBlock;
-            
+
             if (data.blockId) {
               // If specific blockId is provided, load that block
               existingBlock = await Block.findByPk(data.blockId);
@@ -50,7 +50,7 @@ wss.on('connection', (ws) => {
               // If no blockId, find the first block for this page (or you could get all blocks)
               existingBlock = await Block.findOne({
                 where: { pageId: data.pageId },
-                order: [['createdAt', 'ASC']] // Get the oldest block first
+                order: [['createdAt', 'ASC']], // Get the oldest block first
               });
             }
 
@@ -58,7 +58,7 @@ wss.on('connection', (ws) => {
               // Update session with the found block ID
               session.blockId = existingBlock.id;
               clientSessions.set(ws, session);
-              
+
               // Send existing data to the client
               ws.send(
                 JSON.stringify({
@@ -94,17 +94,19 @@ wss.on('connection', (ws) => {
           if (currentSession) {
             try {
               let blockId = currentSession.blockId;
-              
+
               if (blockId) {
                 // Update existing block
                 await Block.update(
-                  { 
+                  {
                     data: data.content,
-                    updatedAt: new Date()
+                    updatedAt: new Date(),
                   },
                   { where: { id: blockId } }
                 );
-                console.log(`Updated existing block ${blockId} for page ${currentSession.pageId}`);
+                console.log(
+                  `Updated existing block ${blockId} for page ${currentSession.pageId}`
+                );
               } else {
                 // Create new block only if none exists for this page
                 const newBlock = await Block.create({
@@ -113,11 +115,13 @@ wss.on('connection', (ws) => {
                   data: data.content,
                 });
                 blockId = newBlock.id;
-                
+
                 // Update session with new block ID
                 currentSession.blockId = blockId;
                 clientSessions.set(ws, currentSession);
-                console.log(`Created new block ${blockId} for page ${currentSession.pageId}`);
+                console.log(
+                  `Created new block ${blockId} for page ${currentSession.pageId}`
+                );
               }
 
               // Broadcast to other clients on the same page
@@ -146,19 +150,19 @@ wss.on('connection', (ws) => {
       }
     } catch (error) {
       console.error('Error processing message:', error);
-      
+
       // Handle plain text messages (backward compatibility)
       const session = clientSessions.get(ws);
       if (session) {
         try {
           let blockId = session.blockId;
-          
+
           if (blockId) {
             // Update existing block
             await Block.update(
-              { 
+              {
                 data: message.toString(),
-                updatedAt: new Date()
+                updatedAt: new Date(),
               },
               { where: { id: blockId } }
             );
