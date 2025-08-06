@@ -8,8 +8,6 @@ const swaggerSpec = require('./swagger/swaggerSpec');
 const cookieParser = require('cookie-parser');
 const path = require('path');
 
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
-
 app.use(
   cors({
     origin: 'http://localhost:5173',
@@ -31,7 +29,12 @@ if (process.env.NODE_ENV !== 'production') {
   app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 }
 
-//  Routes
+// This is the correct line
+app.use(
+  '/uploads',
+  express.static(path.join(__dirname, '..', 'public/uploads'))
+);
+
 app.use('/api', routes);
 
 module.exports = app;

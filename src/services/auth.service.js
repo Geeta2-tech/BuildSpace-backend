@@ -1,11 +1,12 @@
-const { User } = require('../models');
+const { User, EmailVerificationToken } = require('../models');
 const { tokenUtils, passwordUtils } = require('../utils/encryption');
 const nodemailer = require('nodemailer');
 const crypto = require('crypto');
+const { Op } = require('sequelize');
 
 // Email setup (adjust as per your config)
 const transporter = nodemailer.createTransport({
-  service: 'Gmail',
+  service: 'gmail',
   auth: {
     user: process.env.SMTP_USER,
     pass: process.env.SMTP_PASS,
@@ -107,46 +108,69 @@ const resetPassword = async (token, newPassword) => {
 };
 
 const sendEmailVerification = async (userId, email) => {
-  // Create token
+  // Generate a secure, random token
   const token = crypto.randomBytes(32).toString('hex');
-  // Set expiration
-  const expiresAt = Date.now() + 15 * 60 * 1000;
+  // Set the expiration time (e.g., 15 minutes from now)
+  const expiresAt = new Date(Date.now() + 15 * 60 * 1000);
 
-  // Store token
-  emailVerificationTokens.set(token, { userId, expiresAt });
+  // If the user already has a verification token, delete it
+  const existingToken = await EmailVerificationToken.findOne({
+    where: { userId},
+  });
 
-  // Create link
-  const link = `${process.env.CLIENT_URL}/verify-email?token=${token}`;
+  if (existingToken) {
+    await instance.destroy();
+  }
 
-  // Send email
+  // Store the token and its details in the database
+  await EmailVerificationToken.create({
+    userId,
+    token,
+    expiresAt,
+  });
+
+  // Create the verification link
+  const link = `${process.env.FRONTEND_URL}/verify-email?token=${token}`;
+
+  // Send the verification email
   await transporter.sendMail({
     to: email,
-    subject: 'Verify your email',
-    html: `<p>Click to verify your email:</p><a href="${link}">${link}</a>`,
+    subject: 'Verify your email for BuildSpace',
+    html: `
+      <h2>Welcome to BuildSpace!</h2>
+      <p>Please click the link below to verify your email address. This link is valid for 15 minutes.</p>
+      <a href="${link}" style="background-color: #4f46e5; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">Verify Email</a>
+    `,
   });
 
   return true;
 };
 
 const verifyEmail = async (token) => {
-  // Check if token is valid
-  const data = emailVerificationTokens.get(token);
+  // Find the token in the database
+  const verificationToken = await EmailVerificationToken.findOne({
+    where: {
+      token,
+      expiresAt: { [Op.gt]: new Date() }, // Check that the token is not expired
+    },
+  });
 
-  // Check if token is expired
-  if (!data || data.expiresAt < Date.now()) {
+  // If no token is found or it's expired, throw an error
+  if (!verificationToken) {
     throw new Error('Invalid or expired verification token');
   }
 
-  // Check if user exists
-  const user = await User.findByPk(data.userId);
+  // Find the user associated with the token
+  const user = await User.findByPk(verificationToken.userId);
   if (!user) throw new Error('User not found');
 
-  // Update user
+  // Update the user's verification status
   user.email_verified = true;
   await user.save();
 
-  // Delete token
-  emailVerificationTokens.delete(token);
+  // Delete the token so it cannot be used again
+  await verificationToken.destroy();
+
   return true;
 };
 

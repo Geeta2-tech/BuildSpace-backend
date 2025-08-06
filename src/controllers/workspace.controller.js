@@ -102,12 +102,10 @@ const inviteMembers = async (req, res) => {
 const removeMember = async (req, res) => {
   try {
     const { workspaceId, userId } = req.query; // Changed to req.query
-    const currentUserId = req.user.id;
 
     const removed = await workspaceService.removeWorkspaceMember(
       workspaceId,
-      userId,
-      currentUserId
+      userId
     );
 
     if (!removed)
@@ -161,8 +159,10 @@ const getPendingInvitations = async (req, res) => {
 
 // ----------------------- ACCEPT INVITATION -----------------------
 const acceptInvitation = async (req, res) => {
+  console.log("Request in Accept Invitation Controller:", req);
   try {
     const { token } = req.body;
+    console.log('Accepting invitation with token (Backend Controller):', token);
     const userId = req.user.id;
     const result = await workspaceService.acceptWorkspaceInvitation(
       token,
