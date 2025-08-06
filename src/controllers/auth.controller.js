@@ -141,7 +141,6 @@ const verifyEmail = async (req, res) => {
   }
 };
 
-
 // ------------------- SEND 4-DIGIT CODE ---------------------
 const sendVerificationCode = async (req, res) => {
   try {
@@ -167,6 +166,18 @@ const verifyCodeAndRegister = async (req, res) => {
   }
 };
 
+const getCurrentUser = async (req, res) => {
+  try {
+    const user = req.user; // from auth middleware
+    res.status(200).json({
+      id: user.id,
+      name: user.name,
+      email: user.email,
+    });
+  } catch (err) {
+    res.status(400).json({ message: err.message });
+  }
+};
 
 module.exports = {
   register,
@@ -179,4 +190,5 @@ module.exports = {
   verifyEmail,
   sendVerificationCode,
   verifyCodeAndRegister,
+  getCurrentUser,
 };

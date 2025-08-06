@@ -1,4 +1,4 @@
-const dotenv = require('dotenv').config({ path: 'env/.env.test' });
+const dotenv = require('dotenv');
 const express = require('express');
 const app = express();
 const routes = require('./routes');
@@ -10,10 +10,12 @@ const path = require('path');
 
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
-app.use(cors({
-   origin: 'http://localhost:5173',  // ✅ Frontend origin (adjust accordingly)
-  credentials: true
-}));
+app.use(
+  cors({
+    origin: 'http://localhost:5173', // ✅ Frontend origin (adjust accordingly)
+    credentials: true,
+  })
+);
 
 app.use(express.json());
 app.use(cookieParser());

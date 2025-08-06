@@ -3,12 +3,12 @@ const wss = new WebSocket.Server({ port: 3333 });
 
 wss.on('connection', (ws) => {
   console.log('Client connected');
-  
+
   // Handle message from client
   ws.on('message', (message) => {
     console.log('received: %s', message);
     // Broadcast the message to all connected clients
-    wss.clients.forEach(client => {
+    wss.clients.forEach((client) => {
       if (client !== ws && client.readyState === WebSocket.OPEN) {
         client.send(message);
       }

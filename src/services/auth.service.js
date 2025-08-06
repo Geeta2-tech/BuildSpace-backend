@@ -150,10 +150,8 @@ const verifyEmail = async (token) => {
   return true;
 };
 
-
-
 // In-memory store for verification codes (this is temporary)
-let verificationCodes = {};
+const verificationCodes = {};
 
 // Send 4-digit code via email
 const sendVerificationCode = async (email) => {
@@ -232,9 +230,6 @@ const verifyCodeAndRegister = async (email, code) => {
 
   return { user, tokens }; // Return the new user and tokens
 };
-
-
-
 
 module.exports = {
   registerUser,

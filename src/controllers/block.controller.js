@@ -1,7 +1,7 @@
 // controllers/blockController.js
 
 const Block = require('../models/block.model'); // Sequelize Block model
-const Page = require('../models/page.model');   // Sequelize Page model
+const Page = require('../models/page.model'); // Sequelize Page model
 
 // Create a new block for a page
 exports.createBlock = async (req, res) => {
@@ -29,7 +29,7 @@ exports.createBlock = async (req, res) => {
 exports.getAllBlocks = async (req, res) => {
   try {
     const pageId = req.query.pageId;
-    
+
     // Fetch blocks for the page
     const blocks = await Block.findAll({ where: { pageId } });
     if (!blocks.length) {
@@ -45,9 +45,9 @@ exports.getAllBlocks = async (req, res) => {
 // Update a block's data
 exports.updateBlock = async (req, res) => {
   try {
-    const  id  = req.query.id;
+    const id = req.query.id;
     const { data } = req.body;
-    
+
     // Find the block by ID
     const block = await Block.findByPk(id);
     if (!block) {
@@ -68,7 +68,7 @@ exports.updateBlock = async (req, res) => {
 exports.deleteBlock = async (req, res) => {
   try {
     const { blockId } = req.params;
-    
+
     // Find the block by ID
     const block = await Block.findByPk(blockId);
     if (!block) {

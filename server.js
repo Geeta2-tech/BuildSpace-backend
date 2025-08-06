@@ -19,7 +19,7 @@
 // // WebSocket connection handler
 // wss.on('connection', (ws) => {
 //   console.log('Client connected');
-  
+
 //   // Handle message from client
 //   ws.on('message', (message) => {
 //     console.log('received: %s', message);
@@ -46,7 +46,7 @@ const dotenv = require('dotenv');
 const app = require('./src/app');
 const http = require('http');
 const WebSocket = require('ws');
-const { Block } = require('./src/models');  // Assuming you have a Block model
+const { Block } = require('./src/models'); // Assuming you have a Block model
 
 // Load environment variables from .env file
 dotenv.config();
@@ -86,14 +86,21 @@ wss.on('connection', (ws) => {
       }
 
       // Handle text updates in blocks
-      if (data.action === 'update' && data.workspaceId && data.pageId && data.blockId && data.text) {
+      if (
+        data.action === 'update' &&
+        data.workspaceId &&
+        data.pageId &&
+        data.blockId &&
+        data.text
+      ) {
         const { workspaceId, pageId, blockId, text, userId } = data;
-        console.log(data);
 
         // Save the text update to the database
-        const block = await Block.findOne({ where: { id: blockId, pageId: pageId } });
+        const block = await Block.findOne({
+          where: { id: blockId, pageId: pageId },
+        });
         if (block) {
-          block.data = text;  // Update the block text
+          block.data = text; // Update the block text
           await block.save(); // Persist the change in the database
         }
 
@@ -106,9 +113,9 @@ wss.on('connection', (ws) => {
           timestamp: Date.now(),
         };
 
-        workspaces[workspaceId].forEach(client => {
+        workspaces[workspaceId].forEach((client) => {
           if (client !== ws && client.readyState === WebSocket.OPEN) {
-            client.send(JSON.stringify(updatedMessage));  // Send update to all connected users
+            client.send(JSON.stringify(updatedMessage)); // Send update to all connected users
           }
         });
       }
