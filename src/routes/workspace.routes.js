@@ -191,7 +191,11 @@ router.get('/get-all-members', authMiddleware, workspaceController.getMembers);
  *       500:
  *         description: Failed to add member
  */
-router.post('/add-members', authMiddleware, workspaceController.addMember);
+router.post(
+  '/invite-members',
+  authMiddleware,
+  workspaceController.inviteMembers
+);
 
 /**
  * @swagger
@@ -225,5 +229,25 @@ router.delete(
   authMiddleware,
   workspaceController.removeMember
 );
+
+router.get(
+  '/pending-invitations',
+  authMiddleware,
+  workspaceController.getPendingInvitations
+);
+
+router.post(
+  '/accept-invitation',
+  authMiddleware,
+  workspaceController.acceptInvitation
+);
+
+router.post(
+  '/decline-invitation',
+  authMiddleware,
+  workspaceController.declineInvitation
+);
+
+router.get('/get-invitation-details', workspaceController.getInvitationDetails);
 
 module.exports = router;

@@ -61,7 +61,9 @@ wss.on('connection', (ws) => {
                   pageId: data.pageId,
                 })
               );
-              console.log(`Loaded existing block ${existingBlock.id} for page ${data.pageId}`);
+              console.log(
+                `Loaded existing block ${existingBlock.id} for page ${data.pageId}`
+              );
             } else {
               // No existing block found, send empty data
               ws.send(

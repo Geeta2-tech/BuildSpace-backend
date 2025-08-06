@@ -207,4 +207,6 @@ router.post('/send-verification-code', authController.sendVerificationCode);
 // Verify the code and register the user
 router.post('/verify-code-and-register', authController.verifyCodeAndRegister);
 
+router.get('/get-current-user', authMiddleware, authController.getCurrentUser);
+
 module.exports = router;
