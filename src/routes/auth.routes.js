@@ -175,7 +175,7 @@ router.post('/reset-password', authController.resetPassword);
  *       401:
  *         description: Unauthorized or missing token
  */
-router.post(
+router.get(
   '/send-verification',
   authMiddleware,
   authController.sendEmailVerification
@@ -208,5 +208,7 @@ router.post('/send-verification-code', authController.sendVerificationCode);
 router.post('/verify-code-and-register', authController.verifyCodeAndRegister);
 
 router.get('/get-current-user', authMiddleware, authController.getCurrentUser);
+
+router.delete('/delete-user', authMiddleware, authController.deleteUser);
 
 module.exports = router;

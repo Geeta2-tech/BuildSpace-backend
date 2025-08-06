@@ -1,4 +1,8 @@
-const { User, EmailVerificationToken } = require('../models');
+const {
+  User,
+  EmailVerificationToken,
+  ForgotPasswordToken,
+} = require('../models');
 const { tokenUtils, passwordUtils } = require('../utils/encryption');
 const nodemailer = require('nodemailer');
 const crypto = require('crypto');
@@ -8,8 +12,8 @@ const { Op } = require('sequelize');
 const transporter = nodemailer.createTransport({
   service: 'gmail',
   auth: {
-    user: process.env.SMTP_USER,
-    pass: process.env.SMTP_PASS,
+    user: process.env.EMAIL_USER,
+    pass: process.env.EMAIL_PASS,
   },
 });
 
@@ -60,10 +64,6 @@ const refreshAccessToken = (refreshToken) => {
   return accessToken;
 };
 
-// In-memory store for tokens (can use DB or Redis in prod)
-const passwordResetTokens = new Map();
-const emailVerificationTokens = new Map();
-
 const forgotPassword = async (email) => {
   const user = await User.findOne({ where: { email } });
   if (!user) throw new Error('User not found with this email');
@@ -71,11 +71,21 @@ const forgotPassword = async (email) => {
   const token = crypto.randomBytes(32).toString('hex');
   const expiresAt = Date.now() + 15 * 60 * 1000; // 15 mins
 
-  passwordResetTokens.set(token, { userId: user.id, expiresAt });
+  const existingToken = await ForgotPasswordToken.findOne({ where: { email } });
+  if (existingToken) {
+    await existingToken.destroy(); // Remove old token
+  }
 
-  const resetLink = `${process.env.CLIENT_URL}/reset-password?token=${token}`;
+  await ForgotPasswordToken.create({
+    email: user.email,
+    token,
+    expiresAt,
+  });
+
+  const resetLink = `${process.env.FRONTEND_URL}/reset-password?token=${token}`;
 
   await transporter.sendMail({
+    from: `"BuildSpace" <${process.env.EMAIL_USER}>`,
     to: user.email,
     subject: 'Reset your password',
     html: `<p>Click below to reset your password:</p><a href="${resetLink}">${resetLink}</a>`,
@@ -85,16 +95,15 @@ const forgotPassword = async (email) => {
 };
 
 const resetPassword = async (token, newPassword) => {
-  // Check if token is valid
-  const data = passwordResetTokens.get(token);
-
-  // Check if token is expired
-  if (!data || data.expiresAt < Date.now()) {
+  const existingToken = await ForgotPasswordToken.findOne({
+    where: { token, expiresAt: { [Op.gt]: new Date() } },
+  });
+  if (!existingToken) {
     throw new Error('Invalid or expired token');
   }
 
   // Check if user exists
-  const user = await User.findByPk(data.userId);
+  const user = await User.findOne({ where: { email: existingToken.email } });
   if (!user) throw new Error('User not found');
 
   // Update password
@@ -102,8 +111,9 @@ const resetPassword = async (token, newPassword) => {
   user.password = hashed;
   await user.save();
 
-  // Delete token
-  passwordResetTokens.delete(token);
+  // Destroy token
+  existingToken.destroy();
+
   return true;
 };
 
@@ -119,7 +129,7 @@ const sendEmailVerification = async (userId, email) => {
   });
 
   if (existingToken) {
-    await instance.destroy();
+    await existingToken.destroy();
   }
 
   // Store the token and its details in the database
@@ -134,6 +144,7 @@ const sendEmailVerification = async (userId, email) => {
 
   // Send the verification email
   await transporter.sendMail({
+    from: `"BuildSpace" <${process.env.EMAIL_USER}>`,
     to: email,
     subject: 'Verify your email for BuildSpace',
     html: `
@@ -256,6 +267,16 @@ const verifyCodeAndRegister = async (email, code) => {
   return { user, tokens }; // Return the new user and tokens
 };
 
+const deleteUser = async (userId) => {
+  const user = await User.findByPk(userId);
+  if (!user) throw new Error('User not found');
+
+  // Soft delete user
+  user.destroy();
+
+  return { message: 'User deleted successfully' };
+};
+
 module.exports = {
   registerUser,
   loginUser,
@@ -266,4 +287,5 @@ module.exports = {
   verifyEmail,
   sendVerificationCode,
   verifyCodeAndRegister,
+  deleteUser,
 };

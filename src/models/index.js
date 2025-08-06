@@ -5,6 +5,7 @@ const Page = require('./page.model');
 const Block = require('./block.model');
 const WorkspaceInvitation = require('./workspaceInvitation.model');
 const EmailVerificationToken = require('./emailverificationtoken.model');
+const ForgotPasswordToken = require('./forgotpasswordtoken.model');
 
 // ========== ASSOCIATIONS ========== //
 
@@ -105,6 +106,17 @@ EmailVerificationToken.belongsTo(User, {
   as: 'user',
 });
 
+User.hasOne(ForgotPasswordToken, {
+  foreignKey: 'userId',
+  as: 'forgotPasswordToken',
+  onDelete: 'CASCADE',
+});
+
+ForgotPasswordToken.belongsTo(User, {
+  foreignKey: 'userId',
+  as: 'user',
+});
+
 module.exports = {
   User,
   Workspace,
@@ -113,4 +125,5 @@ module.exports = {
   Block,
   WorkspaceInvitation,
   EmailVerificationToken,
+  ForgotPasswordToken,
 };
