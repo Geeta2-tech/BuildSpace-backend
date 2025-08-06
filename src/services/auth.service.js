@@ -115,7 +115,7 @@ const sendEmailVerification = async (userId, email) => {
 
   // If the user already has a verification token, delete it
   const existingToken = await EmailVerificationToken.findOne({
-    where: { userId},
+    where: { userId },
   });
 
   if (existingToken) {
