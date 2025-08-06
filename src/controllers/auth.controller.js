@@ -123,6 +123,7 @@ const resetPassword = async (req, res) => {
 const sendEmailVerification = async (req, res) => {
   try {
     const user = req.user; // from auth middleware
+    console.log(req.user);
     await authService.sendEmailVerification(user.id, user.email);
     res.status(200).json({ message: 'Verification email sent' });
   } catch (err) {
@@ -161,28 +162,6 @@ const verifyCodeAndRegister = async (req, res) => {
       code
     );
 
-    // res
-    //   .cookie('accessToken', tokens.accessToken, {
-    //     httpOnly: true,
-    //     secure: process.env.NODE_ENV === 'production',
-    //     maxAge: 15 * 60 * 1000,
-    //   })
-    //   .cookie('refreshToken', tokens.refreshToken, {
-    //     httpOnly: true,
-    //     secure: process.env.NODE_ENV === 'production',
-    //     maxAge: 7 * 24 * 60 * 60 * 1000,
-    //   })
-    //   .status(201)
-    //   .json({
-    //     user: {
-    //       id: user.id,
-    //       name: user.name,
-    //       email: user.email,
-    //       avatar: user.avatar,
-    //       email_verified: user.email_verified,
-    //     },
-    //   });
-
     res.status(201).json({
       user: {
         id: user.id,
@@ -208,7 +187,18 @@ const getCurrentUser = async (req, res) => {
       id: user.id,
       name: user.name,
       email: user.email,
+      avatar: user.avatar,
     });
+  } catch (err) {
+    res.status(400).json({ message: err.message });
+  }
+};
+
+const deleteUser = async (req, res) => {
+  try {
+    const userId = req.user.id; // from auth middleware
+    const result = await authService.deleteUser(userId);
+    res.status(200).json(result);
   } catch (err) {
     res.status(400).json({ message: err.message });
   }
@@ -226,4 +216,5 @@ module.exports = {
   sendVerificationCode,
   verifyCodeAndRegister,
   getCurrentUser,
+  deleteUser,
 };
