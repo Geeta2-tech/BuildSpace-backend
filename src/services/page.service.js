@@ -1,11 +1,6 @@
 const { Page, Workspace } = require('../models');
 
-const createPage = async (
-  title,
-  workspaceId,
-  createdBy,
-  parentPageId = null
-) => {
+const createPage = async (title, workspaceId, createdBy = null, parentPageId = null) => {
   // Ensure workspace exists
   const workspace = await Workspace.findByPk(workspaceId);
   if (!workspace) return null;
@@ -13,12 +8,13 @@ const createPage = async (
   const page = await Page.create({
     title,
     workspaceId,
-    createdBy,
+    createdBy, // Allow createdBy to be null
     parentPageId,
   });
 
   return page;
 };
+
 
 const getPagesInWorkspace = async (workspaceId) => {
   const pages = await Page.findAll({
@@ -45,11 +41,17 @@ const updatePageTitle = async (pageId, title, userId) => {
 
 const deletePage = async (pageId, userId) => {
   const page = await Page.findByPk(pageId);
-  if (!page || page.createdBy !== userId) return null;
+  if (!page) return null;
 
-  await page.destroy();
-  return true;
+  // Allow deletion if createdBy is null or if createdBy matches the userId
+  if (page.createdBy === null || page.createdBy === userId) {
+    await page.destroy();
+    return true;
+  }
+
+  return null;
 };
+
 
 module.exports = {
   createPage,

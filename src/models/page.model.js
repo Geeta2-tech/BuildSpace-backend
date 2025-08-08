@@ -6,7 +6,15 @@ const Page = sequelize.define(
   {
     title: {
       type: DataTypes.STRING,
-      allowNull: true,
+      allowNull: true,  // Title can be nullable
+    },
+    createdBy: {
+      type: DataTypes.INTEGER,
+      allowNull: true,  // createdBy can be nullable
+    },
+    parentPageId: {
+      type: DataTypes.INTEGER,
+      allowNull: true,  // Parent page can be nullable
     },
   },
   {
