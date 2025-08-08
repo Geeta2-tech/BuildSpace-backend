@@ -3,7 +3,7 @@ const Workspace = require('./workspace.model');
 const WorkspaceMember = require('./workspacemember.model');
 const Page = require('./page.model');
 const Block = require('./block.model');
-const WorkspaceInvitation = require('./workspaceInvitation.model');
+const WorkspaceInvitation = require('./workspaceinvitation.model');
 const EmailVerificationToken = require('./emailverificationtoken.model');
 const ForgotPasswordToken = require('./forgotpasswordtoken.model');
 

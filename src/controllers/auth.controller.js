@@ -123,7 +123,6 @@ const resetPassword = async (req, res) => {
 const sendEmailVerification = async (req, res) => {
   try {
     const user = req.user; // from auth middleware
-    console.log(req.user);
     await authService.sendEmailVerification(user.id, user.email);
     res.status(200).json({ message: 'Verification email sent' });
   } catch (err) {

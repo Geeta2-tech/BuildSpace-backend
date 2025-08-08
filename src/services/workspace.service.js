@@ -134,14 +134,11 @@ const inviteWorkspaceMembers = async (
 };
 
 const acceptWorkspaceInvitation = async (token, userId) => {
-  console.log('Accepting invitation with token (Backend Service):', token);
   const invitation = await WorkspaceInvitation.findOne({
     where: {
       token,
     },
   });
-
-  console.log('Invitation found:', invitation);
 
   if (!invitation) {
     throw new Error('Invalid or expired invitation token.');
@@ -151,8 +148,6 @@ const acceptWorkspaceInvitation = async (token, userId) => {
   if (!user || user.email !== invitation.email) {
     throw new Error('This invitation is for a different user.');
   }
-
-  console.log('User found:', user);
 
   const isAlreadyMember = await WorkspaceMember.findOne({
     where: {
@@ -165,8 +160,6 @@ const acceptWorkspaceInvitation = async (token, userId) => {
     await invitation.destroy();
     return { status: 'already_member', workspaceId: invitation.workspaceId };
   }
-
-  console.log('Adding user to workspace:', invitation.workspaceId);
 
   await WorkspaceMember.create({
     workspaceId: invitation.workspaceId,
