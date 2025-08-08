@@ -159,10 +159,8 @@ const getPendingInvitations = async (req, res) => {
 
 // ----------------------- ACCEPT INVITATION -----------------------
 const acceptInvitation = async (req, res) => {
-  console.log('Request in Accept Invitation Controller:', req);
   try {
     const { token } = req.body;
-    console.log('Accepting invitation with token (Backend Controller):', token);
     const userId = req.user.id;
     const result = await workspaceService.acceptWorkspaceInvitation(
       token,

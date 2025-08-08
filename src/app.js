@@ -1,4 +1,4 @@
-const dotenv = require('dotenv');
+require('dotenv');
 const express = require('express');
 const app = express();
 const routes = require('./routes');
